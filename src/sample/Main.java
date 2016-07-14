@@ -36,9 +36,30 @@ public class Main extends Application {
     static void drawAnts(GraphicsContext context) {
         context.clearRect(0, 0, WIDTH, HEIGHT);
         for (Ant ant : ants) {
-            context.setFill(Color.BLACK);
+            if (ant.isRed) {
+                context.setFill(Color.RED);
+            }
+            else {
+                context.setFill(Color.BLACK);
+            }
             context.fillOval(ant.x, ant.y, 5, 5);
         }
+    }
+
+    static Ant aggravateAnt(Ant ant) {
+        ArrayList<Ant> aggrAnts = ants.stream()
+                .filter(antA ->
+                     (Math.abs(ant.x - antA.x) <= 20) && (Math.abs(ant.y - antA.y) <= 20)
+                )
+                .collect(Collectors.toCollection(ArrayList<Ant>::new));
+
+        if (aggrAnts.size() > 1) {
+            ant.isRed = true;
+        }
+        else {
+            ant.isRed = false;
+        }
+        return ant;
     }
 
     static Ant moveAnt(Ant ant) {
@@ -55,6 +76,7 @@ public class Main extends Application {
     static void moveAnts() {
         ants = ants.parallelStream()            // <-- parallelism speeds ants
                 .map(Main::moveAnt)
+                .map(Main::aggravateAnt)
                 .collect(Collectors.toCollection(ArrayList<Ant>::new));
     }
 
@@ -65,7 +87,7 @@ public class Main extends Application {
     }
 
     @Override
-    public void start(Stage primaryStage) throws Exception{
+    public void start(Stage primaryStage) throws Exception {
         Parent root = FXMLLoader.load(getClass().getResource("main.fxml"));
         primaryStage.setTitle("Ants");
         primaryStage.setScene(new Scene(root, WIDTH, HEIGHT));
@@ -87,10 +109,7 @@ public class Main extends Application {
             }
         };
         timer.start();
-
-
     }
-
 
     public static void main(String[] args) {
         launch(args);
