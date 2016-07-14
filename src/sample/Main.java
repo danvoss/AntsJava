@@ -1,16 +1,19 @@
 package sample;
 
+import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Label;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 public class Main extends Application {
 
@@ -19,6 +22,8 @@ public class Main extends Application {
     static final int ANT_COUNT = 100;
 
     static ArrayList<Ant> ants = new ArrayList<>();
+
+    static long lastTimeStamp = 0;
 
     static void createAnts() {
         for (int i = 0; i < ANT_COUNT; i++) {
@@ -36,6 +41,29 @@ public class Main extends Application {
         }
     }
 
+    static Ant moveAnt(Ant ant) {
+        ant.x += (Math.random() * 2) - 1; // Math.random returns between 0 and 1, but we want -1 to 1 for both directions
+        ant.y += (Math.random() * 2) - 1;
+        try {
+            Thread.sleep(1);                 // used to slow ants
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return ant;
+    }
+
+    static void moveAnts() {
+        ants = ants.parallelStream()            // <-- parallelism speeds ants
+                .map(Main::moveAnt)
+                .collect(Collectors.toCollection(ArrayList<Ant>::new));
+    }
+
+    static int fps(long currentTimeStamp) {      // frames per second
+        double diff = currentTimeStamp - lastTimeStamp;
+        double diffSeconds = diff / 1000000000;
+        return (int) (1/diffSeconds);
+    }
+
     @Override
     public void start(Stage primaryStage) throws Exception{
         Parent root = FXMLLoader.load(getClass().getResource("main.fxml"));
@@ -45,9 +73,22 @@ public class Main extends Application {
 
         Canvas canvas = (Canvas) primaryStage.getScene().lookup("#canvas");
         GraphicsContext context = canvas.getGraphicsContext2D();
+        Label fpsLabel = (Label) primaryStage.getScene().lookup("#fps");
 
         createAnts();
-        drawAnts(context);
+
+        AnimationTimer timer = new AnimationTimer() {    // anonymous class
+            @Override
+            public void handle(long now) {
+                moveAnts();
+                drawAnts(context);
+                fpsLabel.setText(String.valueOf(fps(now)));
+                lastTimeStamp = now;
+            }
+        };
+        timer.start();
+
+
     }
 
 
